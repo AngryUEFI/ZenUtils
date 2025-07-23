@@ -34,6 +34,9 @@ class ArchSpec:
         # Size flags
         self.size_flag_to_code = raw.get('size_flags', {})
         self.code_to_size_flag = {v: k for k, v in self.size_flag_to_code.items()}
+        # Segments
+        self.code_to_segment = raw.get('segments', {})
+        self.segment_to_code = {v: k for k, v in self.code_to_segment.items()}
         # Common fields
         self.common_fields = raw.get('common_fields', {})
         # Instruction classes
@@ -72,13 +75,13 @@ class ArchSpec:
                 return name
         return None
 
-    def get_instruction_field_values(self, word: int) -> dict:
+    def decode_instruction(self, word: int) -> dict:
         fields = self.get_common_field_values(word)
         class_name = self.get_class(fields)
         fields.update(self.get_class_field_values(word, class_name))
         return fields
 
-    def decode_instruction(self, fields: dict, class_name: str = None) -> dict:
+    def get_instruction_spec(self, fields: dict, class_name: str = None) -> dict:
         if class_name == None:
             class_name = self.get_class(fields)
         evaluator = ConditionEvaluator(fields)
@@ -86,6 +89,14 @@ class ArchSpec:
             if evaluator.evaluate(insn['condition']):
                 return insn
         return None
+
+    def get_flags(self, fields: dict) -> dict:
+        flags = {}
+        for flag, spec in self.instruction_flags.items():
+            if spec['field'] in fields:
+                if fields[spec['field']].get('value', 0) == spec['value']:
+                    flags[flag] = spec
+        return flags
 
     @staticmethod
     def encode_instruction(fields: dict) -> int:

@@ -66,19 +66,32 @@ def test_instruction_class():
     fields.update(class_fields)
     assert fields['imm16']['value'] == 0x42
 
-    class_fields2 = zen2.get_instruction_field_values(word)
+    class_fields2 = zen2.decode_instruction(word)
     assert fields['imm16']['value'] == 0x42
 
-def test_decode_instruction():
+def test_get_instruction_spec():
     reg = Registry()
     zen2 = reg.get('Zen2')
 
     # Test instruction: add reg1, reg3, 0x42
     word = 0x382F9C108E280042
 
-    fields = zen2.get_instruction_field_values(word)
-    insn = zen2.decode_instruction(fields)
+    fields = zen2.decode_instruction(word)
+    insn = zen2.get_instruction_spec(fields)
     assert insn['assembly'].startswith('add')
+
+def test_get_flags():
+    reg = Registry()
+    zen2 = reg.get('Zen2')
+
+    # Test instruction: add.n reg1, reg3, reg7
+    word = 0x382F9E108CE00000
+
+    fields = zen2.decode_instruction(word)
+    flags = zen2.get_flags(fields)
+    assert len(flags) == 2
+    assert 'n' in flags
+    assert 'q' in flags
 
 def test_encode_instruction():
     reg = Registry()
@@ -86,7 +99,7 @@ def test_encode_instruction():
 
     # Test instruction: add reg1, reg3, 0x42
     word = 0x382F9C108E280042
-    fields = zen2.get_instruction_field_values(word)
+    fields = zen2.decode_instruction(word)
 
     word_out = zen2.encode_instruction(fields)
     assert word_out == word
