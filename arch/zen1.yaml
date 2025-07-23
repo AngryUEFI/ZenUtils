@@ -1,0 +1,23 @@
+# Zen1 ISA version delta: inherits all from base Zen
+inherits: ZenBase
+name: Zen1
+
+# Override default header values
+object_format:
+  header:
+    defaults:
+      date: 0x07112025
+      revision: 0x08001150
+      format: 0x8004
+      cpuid: 0x00008011
+      rev: 0x08001150
+
+# Override the number of match registers
+match_registers:
+  entry_count: 22
+  regs_per_entry: 2
+
+# Override the number of instruction packages
+package:
+  start_address: 0x1fc0
+  count: 64

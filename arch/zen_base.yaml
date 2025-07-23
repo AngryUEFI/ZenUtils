@@ -1,0 +1,426 @@
+# Base specification for Zen arch
+
+name: ZenBase
+word_size: 64
+endianness: little
+
+# Microcode and general-purpose registers
+registers: [reg0, reg1, reg2, reg3, reg4, reg5, reg6, reg7, reg8, reg9, reg10, reg11, reg12, reg13, reg14, reg15,
+            rax, rcx, rdx, rbx, rsp, rbp, rsi, rdi, r8, r9, r10, r11, r12, r13, r14, r15]
+
+# Size suffix to encoding mapping
+size_flags:
+  b: 0b000   # byte (1-byte)
+  w: 0b001   # word (2-byte)
+  d: 0b011   # doubleword (4-byte)
+  q: 0b111   # quadword (8-byte)
+
+# Common fields of micro instructions
+base_encoding:
+  fields:
+    - name: rt          # 2nd source register operand
+      type: register
+      bits: [21, 25]
+    - name: rs          # 1st source register operand
+      type: register
+      bits: [26, 30]
+    - name: rd          # Destination register operand
+      type: register
+      bits: [31, 35]
+    - name: rmod        # Unknown, must be set for RegOp, LdOp
+      type: flag
+      bits: [36, 36]
+    - name: read_zf     # If set read zero flag
+      type: flag
+      bits: [37, 37]
+    - name: read_cf     # If set read carry flag
+      type: flag
+      bits: [38, 38]
+    - name: write_zf    # If set write zero flag
+      type: flag
+      bits: [39, 39]
+    - name: write_cf    # If set write carry flag
+      type: flag
+      bits: [40, 40]
+    - name: native_flags  # If set use x86_64 cf/zf, if clear use microcode cf/zf
+      type: flag
+      bits: [41, 41]
+    - name: size_flags  # Operation size
+      type: immediate
+      bits: [42, 44]
+    - name: load        # If set performs memory load
+      type: flag
+      bits: [45, 45]
+    - name: store       # If set performs memory store
+      type: flag
+      bits: [46, 46]
+    - name: operation   # Operation ALU (add, shl, and, ...) load, store, cond. microcode branch
+      type: immediate
+      bits: [47, 54]
+    - name: exec_unit   # Execution unit
+      type: immediate
+      bits: [59, 61]
+
+# Instruction classes
+op_classes:
+  # RegOp - ALU operations
+  regop:
+    fields:
+      - name: imm16       # Immediate
+        type: immediate
+        bits: [0, 15]
+      - name: imm_signed  # If set treat imm16 as signed immediate
+        type: flag
+        bits: [16, 16]
+      - name: imm_mode    # If set use imm16 as 2nd source operand instead of rt
+        type: flag
+        bits: [19, 19]
+    defaults:
+      - name: rmod
+        value: 1
+      - name: size_flags
+        value: 7
+      - name: exec_unit
+        value: 7
+    condition: operation >= 0x20 && load == 0 && store == 0
+  # LdOp - memory load operation
+  ldop:
+    fields:
+      - name: offset10    # Offset
+        type: immediate
+        bits: [0, 9]
+      - name: segment     # Memory segment
+        type: immediate
+        bits: [10, 13]
+      - name: nop3        # Unknown, one bit must be set for load to work
+        type: immediate
+        bits: [15, 16]
+      - name: qwsz        # If set left-shift offset by 3 (qword sized elements)
+        type: flag
+        bits: [19, 19]
+    defaults:
+      - name: nop3
+        value: 1
+      - name: rmod
+        value: 1
+      - name: size_flags
+        value: 7
+      - name: load
+        value: 1
+      - name: operation
+        value: 0xde
+      - name: exec_unit
+        value: 5
+    condition: load == 1 && operation == 0xde && store == 0
+  # StOp - memory store operation
+  stop:
+    fields:
+      - name: offset10    # Offset
+        type: immediate
+        bits: [0, 9]
+      - name: segment     # Memory segment
+        type: immediate
+        bits: [10, 13]
+      - name: nop3        # Unknown, both bits must be set for store to work
+        type: immediate
+        bits: [15, 16]
+      - name: mode        # Unknown, both bits must be set for store to work
+        type: immediate
+        bits: [15, 16]
+      - name: qwsz        # If set left-shift offset by 3 (qword sized elements)
+        type: flag
+        bits: [19, 19]
+    defaults:
+      - name: nop3
+        value: 3
+      - name: mode
+        value: 3
+      - name: size_flags
+        value: 7
+      - name: store
+        value: 1
+      - name: operation
+        value: 0xa0
+      - name: exec_unit
+        value: 3
+    condition: store == 1 && operation == 0xa0 && load == 0
+  # BrOp - microcode conditional branch
+  brop:
+    fields:
+      - name: address13   # Absolute microcode ROM/RAM address
+        type: immediate
+        bits: [0, 12]
+      - name: mode3       # Unknown, must be set for branch to work
+        type: flag
+        bits: [19, 19]
+      - name: cond        # Lower 4 bit of operation encode branch condition (je, jne, jb, ja, etc.)
+        type: immediate
+        bits: [47, 50]
+    defaults:
+      - name: mode3
+        value: 1
+      - name: read_zf
+        value: 1
+      - name: read_cf
+        value: 1
+      - name: size_flags
+        value: 7
+      - name: exec_unit
+        value: 4
+    condition: operation < 0x10 && load == 0 && store == 0
+
+# Instruction flags
+instruction_flags:
+  - flag: z
+    field: read_zf
+    value: 1
+  - flag: c
+    field: read_cf
+    value: 1
+  - flag: Z
+    field: write_zf
+    value: 1
+  - flag: C
+    field: write_cf
+    value: 1
+  - flag: n
+    field: native_flags
+    value: 1
+  - flag: b
+    field: size_flags
+    value: 0b000
+  - flag: w
+    field: size_flags
+    value: 0b001
+  - flag: d
+    field: size_flags
+    value: 0b011
+  - flag: q
+    field: size_flags
+    value: 0b111
+
+instructions:
+  # ALU ops
+  regop:
+    - assembly: nop
+      condition: operation == 0xff
+    - assembly: mov rd, rt
+      condition: operation == 0xa0 && imm_mode == 0
+    - assembly: mov rd, imm16
+      condition: operation == 0xa0 && imm_mode == 1
+    # Arithmetic ops
+    - assembly: add rd, rs, rt
+      condition: operation == 0x5f && imm_mode == 0
+    - assembly: add rd, rs, imm16
+      condition: operation == 0x5f && imm_mode == 1
+    - assembly: adc rd, rs, rt
+      condition: operation == 0x5d && imm_mode == 0
+    - assembly: adc rd, rs, imm16
+      condition: operation == 0x5d && imm_mode == 1
+    - assembly: sub rd, rs, rt
+      condition: operation == 0x50 && imm_mode == 0
+    - assembly: sub rd, rs, imm16
+      condition: operation == 0x50 && imm_mode == 1
+    - assembly: sbb rd, rs, rt
+      condition: operation == 0x52 && imm_mode == 0
+    - assembly: sbb rd, rs, imm16
+      condition: operation == 0x52 && imm_mode == 1
+    - assembly: mul rd, rs, rt
+      condition: operation == 0x60 && imm_mode == 0
+    - assembly: mul rd, rs, imm16
+      condition: operation == 0x60 && imm_mode == 1
+    # Logic ops
+    - assembly: and rd, rs, rt
+      condition: operation == 0xb0 && imm_mode == 0
+    - assembly: and rd, rs, imm16
+      condition: operation == 0xb0 && imm_mode == 1
+    - assembly: xor rd, rs, rt
+      condition: operation == 0xb5 && imm_mode == 0
+    - assembly: xor rd, rs, imm16
+      condition: operation == 0xb5 && imm_mode == 1
+    - assembly: or rd ,rs ,rt
+      condition: operation == 0xbe && imm_mode == 0
+    - assembly: or rd ,rs ,imm16
+      condition: operation == 0xbe && imm_mode == 1
+    # Shift/rotate ops
+    - assembly: shl rd, rs, rt
+      condition: operation == 0x40 && imm_mode == 0
+    - assembly: shl rd, rs, imm16
+      condition: operation == 0x40 && imm_mode == 1
+    - assembly: scl rd, rs, rt
+      condition: operation == 0x41 && imm_mode == 0
+    - assembly: scl rd, rs, imm16
+      condition: operation == 0x41 && imm_mode == 1
+    - assembly: rol rd, rs, rt
+      condition: operation == 0x42 && imm_mode == 0
+    - assembly: rol rd, rs, imm16
+      condition: operation == 0x42 && imm_mode == 1
+    - assembly: rcl rd, rs, rt
+      condition: operation == 0x44 && imm_mode == 0
+    - assembly: rcl rd, rs, imm16
+      condition: operation == 0x44 && imm_mode == 1
+    - assembly: shr rd, rs, rt
+      condition: operation == 0x48 && imm_mode == 0
+    - assembly: shr rd, rs, imm16
+      condition: operation == 0x48 && imm_mode == 1
+    - assembly: scr rd, rs, rt
+      condition: operation == 0x49 && imm_mode == 0
+    - assembly: scr rd, rs, imm16
+      condition: operation == 0x49 && imm_mode == 1
+    - assembly: ror rd, rs, rt
+      condition: operation == 0x4a && imm_mode == 0
+    - assembly: ror rd, rs, imm16
+      condition: operation == 0x4a && imm_mode == 1
+    - assembly: rcr rd, rs, rt
+      condition: operation == 0x4c && imm_mode == 0
+    - assembly: rcr rd, rs, imm16
+      condition: operation == 0x4c && imm_mode == 1
+    - assembly: sar rd, rs, rt
+      condition: operation == 0x4e && imm_mode == 0
+    - assembly: sar rd, rs, imm16
+      condition: operation == 0x4e && imm_mode == 1
+  # Memory load
+  ldop:
+    - assembly: mov rd, segment:[rs]
+      condition: load == 1 && operation == 0xde && rt == 0 && offset10 == 0
+    - assembly: mov rd, segment:[rs + offset10]
+      condition: load == 1 && operation == 0xde && rt == 0
+    - assembly: mov rd, segment:[rs + rt + offset10]
+      condition: load == 1 && operation == 0xde
+  # Memory store
+  stop:
+    - assembly: mov segment:[rs], rd
+      condition: load == 1 && operation == 0xde && rt == 0 && offset10 == 0
+    - assembly: mov segment:[rs + offset10], rd
+      condition: load == 1 && operation == 0xde && rt == 0
+    - assembly: mov segment:[rs + rt + offset10], rd
+      condition: load == 1 && operation == 0xde
+  # Microcode conditional branch
+  brop:
+    - assembly: jmp address13
+      condition: cond == 1
+    - assembly: jb address13
+      condition: cond == 2
+    - assembly: jnb address13
+      condition: cond == 3
+    - assembly: jz address13
+      condition: cond == 4
+    - assembly: jnz address13
+      condition: cond == 5
+    - assembly: je address13
+      condition: cond == 4
+    - assembly: jne address13
+      condition: cond == 5
+    - assembly: jbe address13
+      condition: cond == 6
+    - assembly: ja address13
+      condition: cond == 7
+    - assembly: jl address13
+      condition: cond == 8
+    - assembly: jge address13
+      condition: cond == 9
+    - assembly: jle address13
+      condition: cond == 10
+    - assembly: jg address13
+      condition: cond == 11
+    - assembly: js address13
+      condition: cond == 12
+    - assembly: jns address13
+      condition: cond == 13
+
+# Binary object format for Zen microcode updates
+object_format:
+  header:
+    defaults:
+      date: 0
+      revision: 0
+      format: 0x8004
+      cpuid: 0
+      rev: 0
+    fields:
+      - name: date
+        type: uint32
+      - name: revision
+        type: uint32
+      - name: format
+        type: uint16
+      - name: patchlen
+        type: uint8
+      - name: init
+        type: uint8
+      - name: checksum
+        type: uint32
+      - name: nbvid
+        type: uint16
+      - name: nbdid
+        type: uint16
+      - name: sbvid
+        type: uint16
+      - name: sbdid
+        type: uint16
+      - name: cpuid
+        type: uint32
+      - name: biosrev
+        type: uint8
+      - name: flags
+        type: uint8
+      - name: reserved
+        type: uint8
+      - name: reserved2
+        type: uint8
+      - name: signature
+        type: bytearray
+        length: 256
+      - name: modulus
+        type: bytearray
+        length: 256
+      - name: check
+        type: bytearray
+        length: 256
+      - name: autorun
+        type: uint8
+      - name: encrypted
+        type: uint8
+      - name: unknown1
+        type: uint8
+      - name: unknown2
+        type: uint8
+      - name: rev
+        type: uint32
+
+# Match register encoding
+match_registers:
+  entry_count: 0
+  regs_per_entry: 2
+  type: match_t
+  encoding:
+    fields:
+      - name: m1
+        bits: [0, 12]
+        type: immediate
+      - name: u1  # match register 1 enable flag
+        bits: [13, 13]
+        type: flag
+      - name: m2
+        bits: [14, 26]
+        type: immediate
+      - name: u2  # match register 2 enable flag
+        bits: [27, 27]
+        type: flag
+      - name: pad
+        bits: [28, 31]
+        type: reserved
+
+# Instruction package (quad) specification
+package:
+    start_address: 0
+    count: 0
+    instructions_per_package: 4
+    instruction_size: 64   # bits
+    sequence_word_size: 32 # bits
+    sequence_word_encoding:
+      continue: 0x00000001
+      branch:
+        encoding: 0x00120000
+        target_address_bits: [0, 12]
+      complete: 0x03100082
