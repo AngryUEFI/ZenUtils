@@ -110,7 +110,7 @@ class ArchSpec:
 
     def get_default_fields_for_instruction(self, instruction: dict, class_name: str) -> dict:
         fields = deepcopy(self.common_fields)
-        fields.update(self.instruction_classes[class_name]['fields'])
+        fields.update(deepcopy(self.instruction_classes[class_name]['fields']))
         defaults = deepcopy(self.instruction_classes[class_name]['defaults'])
         defaults.update(ConditionEvaluator.extract_defs_from_condition(instruction['condition']))
         for field, val in defaults.items():

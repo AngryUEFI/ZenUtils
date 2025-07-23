@@ -10,7 +10,7 @@ def disassemble_single(spec, word: int) -> str:
 
     # Get disassembly template
     insn = spec.get_instruction_spec(fields)
-    assembly = insn['assembly']
+    assembly = insn['template']
     parts = [p for p in re.split(r' |\t|:|\[|\]|\+|-|,', assembly) if p != '']
 
     # Insert operands
@@ -21,10 +21,11 @@ def disassemble_single(spec, word: int) -> str:
         field = fields[part]
         if field['type'] == 'register':
             new_part = spec.registers[field.get('value', 0)]
+        elif part == 'segment':
+            segment_index = field.get('value', 0)
+            new_part = spec.code_to_segment.get(segment_index, hex(segment_index))
         elif field['type'] == 'immediate':
             new_part = hex(field.get('value', 0))
-        elif field['type'] == 'segment':
-            new_part = spec.code_to_segment[field.get('value', 0)]
         else:
             raise ValueError("Unknown field type {} in {}".format(field['type'], assembly))
         assembly = assembly.replace(part, new_part, 1)

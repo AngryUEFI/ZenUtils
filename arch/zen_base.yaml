@@ -95,7 +95,7 @@ instruction_classes:
         type: immediate
         bits: [0, 9]
       segment:          # Memory segment
-        type: segment
+        type: immediate
         bits: [10, 13]
       nop3:             # Unknown, one bit must be set for load to work
         type: immediate
@@ -118,14 +118,14 @@ instruction_classes:
         type: immediate
         bits: [0, 9]
       segment:          # Memory segment
-        type: segment
+        type: immediate
         bits: [10, 13]
       nop3:             # Unknown, both bits must be set for store to work
         type: immediate
         bits: [15, 16]
       mode:             # Unknown, both bits must be set for store to work
         type: immediate
-        bits: [15, 16]
+        bits: [17, 18]
       qwsz:             # If set left-shift offset by 3 (qword sized elements)
         type: flag
         bits: [19, 19]
@@ -151,8 +151,6 @@ instruction_classes:
         bits: [47, 50]
     defaults:
       mode3: 1
-      read_zf: 1
-      read_cf: 1
       size_flags: 7
       exec_unit: 4
     condition: operation < 0x10 && load == 0 && store == 0
@@ -190,134 +188,134 @@ instruction_flags:
 instructions:
   # ALU ops
   regop:
-    - assembly: nop
+    - template: nop
       condition: operation == 0xff
-    - assembly: mov rd, rt
+    - template: mov rd, rt
       condition: operation == 0xa0 && imm_mode == 0
-    - assembly: mov rd, imm16
+    - template: mov rd, imm16
       condition: operation == 0xa0 && imm_mode == 1
     # Arithmetic ops
-    - assembly: add rd, rs, rt
+    - template: add rd, rs, rt
       condition: operation == 0x5f && imm_mode == 0
-    - assembly: add rd, rs, imm16
+    - template: add rd, rs, imm16
       condition: operation == 0x5f && imm_mode == 1
-    - assembly: adc rd, rs, rt
+    - template: adc rd, rs, rt
       condition: operation == 0x5d && imm_mode == 0
-    - assembly: adc rd, rs, imm16
+    - template: adc rd, rs, imm16
       condition: operation == 0x5d && imm_mode == 1
-    - assembly: sub rd, rs, rt
+    - template: sub rd, rs, rt
       condition: operation == 0x50 && imm_mode == 0
-    - assembly: sub rd, rs, imm16
+    - template: sub rd, rs, imm16
       condition: operation == 0x50 && imm_mode == 1
-    - assembly: sbb rd, rs, rt
+    - template: sbb rd, rs, rt
       condition: operation == 0x52 && imm_mode == 0
-    - assembly: sbb rd, rs, imm16
+    - template: sbb rd, rs, imm16
       condition: operation == 0x52 && imm_mode == 1
-    - assembly: mul rd, rs, rt
+    - template: mul rd, rs, rt
       condition: operation == 0x60 && imm_mode == 0
-    - assembly: mul rd, rs, imm16
+    - template: mul rd, rs, imm16
       condition: operation == 0x60 && imm_mode == 1
     # Logic ops
-    - assembly: and rd, rs, rt
+    - template: and rd, rs, rt
       condition: operation == 0xb0 && imm_mode == 0
-    - assembly: and rd, rs, imm16
+    - template: and rd, rs, imm16
       condition: operation == 0xb0 && imm_mode == 1
-    - assembly: xor rd, rs, rt
+    - template: xor rd, rs, rt
       condition: operation == 0xb5 && imm_mode == 0
-    - assembly: xor rd, rs, imm16
+    - template: xor rd, rs, imm16
       condition: operation == 0xb5 && imm_mode == 1
-    - assembly: or rd ,rs ,rt
+    - template: or rd ,rs ,rt
       condition: operation == 0xbe && imm_mode == 0
-    - assembly: or rd ,rs ,imm16
+    - template: or rd ,rs ,imm16
       condition: operation == 0xbe && imm_mode == 1
     # Shift/rotate ops
-    - assembly: shl rd, rs, rt
+    - template: shl rd, rs, rt
       condition: operation == 0x40 && imm_mode == 0
-    - assembly: shl rd, rs, imm16
+    - template: shl rd, rs, imm16
       condition: operation == 0x40 && imm_mode == 1
-    - assembly: scl rd, rs, rt
+    - template: scl rd, rs, rt
       condition: operation == 0x41 && imm_mode == 0
-    - assembly: scl rd, rs, imm16
+    - template: scl rd, rs, imm16
       condition: operation == 0x41 && imm_mode == 1
-    - assembly: rol rd, rs, rt
+    - template: rol rd, rs, rt
       condition: operation == 0x42 && imm_mode == 0
-    - assembly: rol rd, rs, imm16
+    - template: rol rd, rs, imm16
       condition: operation == 0x42 && imm_mode == 1
-    - assembly: rcl rd, rs, rt
+    - template: rcl rd, rs, rt
       condition: operation == 0x44 && imm_mode == 0
-    - assembly: rcl rd, rs, imm16
+    - template: rcl rd, rs, imm16
       condition: operation == 0x44 && imm_mode == 1
-    - assembly: shr rd, rs, rt
+    - template: shr rd, rs, rt
       condition: operation == 0x48 && imm_mode == 0
-    - assembly: shr rd, rs, imm16
+    - template: shr rd, rs, imm16
       condition: operation == 0x48 && imm_mode == 1
-    - assembly: scr rd, rs, rt
+    - template: scr rd, rs, rt
       condition: operation == 0x49 && imm_mode == 0
-    - assembly: scr rd, rs, imm16
+    - template: scr rd, rs, imm16
       condition: operation == 0x49 && imm_mode == 1
-    - assembly: ror rd, rs, rt
+    - template: ror rd, rs, rt
       condition: operation == 0x4a && imm_mode == 0
-    - assembly: ror rd, rs, imm16
+    - template: ror rd, rs, imm16
       condition: operation == 0x4a && imm_mode == 1
-    - assembly: rcr rd, rs, rt
+    - template: rcr rd, rs, rt
       condition: operation == 0x4c && imm_mode == 0
-    - assembly: rcr rd, rs, imm16
+    - template: rcr rd, rs, imm16
       condition: operation == 0x4c && imm_mode == 1
-    - assembly: sar rd, rs, rt
+    - template: sar rd, rs, rt
       condition: operation == 0x4e && imm_mode == 0
-    - assembly: sar rd, rs, imm16
+    - template: sar rd, rs, imm16
       condition: operation == 0x4e && imm_mode == 1
   # Memory load
   ldop:
-    - assembly: mov rd, segment:[rs]
+    - template: mov rd, segment:[rs]
       condition: load == 1 && operation == 0xde && rt == 0 && offset10 == 0
-    - assembly: mov rd, segment:[rs + rt]
+    - template: mov rd, segment:[rs + rt]
       condition: load == 1 && operation == 0xde && offset10 == 0
-    - assembly: mov rd, segment:[rs + offset10]
+    - template: mov rd, segment:[rs + offset10]
       condition: load == 1 && operation == 0xde && rt == 0
-    - assembly: mov rd, segment:[rs + rt + offset10]
+    - template: mov rd, segment:[rs + rt + offset10]
       condition: load == 1 && operation == 0xde
   # Memory store
   stop:
-    - assembly: mov segment:[rs], rd
+    - template: mov segment:[rs], rd
       condition: store == 1 && operation == 0xa0 && rt == 0 && offset10 == 0
-    - assembly: mov segment:[rs + rt], rd
+    - template: mov segment:[rs + rt], rd
       condition: store == 1 && operation == 0xa0 && offset10 == 0
-    - assembly: mov segment:[rs + offset10], rd
+    - template: mov segment:[rs + offset10], rd
       condition: store == 1 && operation == 0xa0 && rt == 0
-    - assembly: mov segment:[rs + rt + offset10], rd
+    - template: mov segment:[rs + rt + offset10], rd
       condition: store == 1 && operation == 0xa0
   # Microcode conditional branch
   brop:
-    - assembly: jmp address13
+    - template: jmp address13
       condition: cond == 1
-    - assembly: jb address13
+    - template: jb address13
       condition: cond == 2
-    - assembly: jnb address13
+    - template: jnb address13
       condition: cond == 3
-    - assembly: jz address13
+    - template: jz address13
       condition: cond == 4
-    - assembly: jnz address13
+    - template: jnz address13
       condition: cond == 5
-    - assembly: je address13
+    - template: je address13
       condition: cond == 4
-    - assembly: jne address13
+    - template: jne address13
       condition: cond == 5
-    - assembly: jbe address13
+    - template: jbe address13
       condition: cond == 6
-    - assembly: ja address13
+    - template: ja address13
       condition: cond == 7
-    - assembly: jl address13
+    - template: jl address13
       condition: cond == 8
-    - assembly: jge address13
+    - template: jge address13
       condition: cond == 9
-    - assembly: jle address13
+    - template: jle address13
       condition: cond == 10
-    - assembly: jg address13
+    - template: jg address13
       condition: cond == 11
-    - assembly: js address13
+    - template: js address13
       condition: cond == 12
-    - assembly: jns address13
+    - template: jns address13
       condition: cond == 13
 
 # Binary object format for Zen microcode updates

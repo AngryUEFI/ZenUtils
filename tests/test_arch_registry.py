@@ -78,7 +78,7 @@ def test_get_instruction_spec():
 
     fields = zen2.decode_instruction(word)
     insn = zen2.get_instruction_spec(fields)
-    assert insn['assembly'].startswith('add')
+    assert insn['template'].startswith('add')
 
 def test_get_flags():
     reg = Registry()
@@ -109,7 +109,7 @@ def test_get_default_fields_for_instruction():
     zen2 = reg.get('Zen2')
 
     insn_spec = {
-        'assembly': 'add rd, rs, rt',
+        'template': 'add rd, rs, rt',
         'condition': 'operation == 0x5f && imm_mode == 0'
     }
 
