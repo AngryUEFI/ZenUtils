@@ -8,7 +8,7 @@ import argparse
 import re
 import struct
 from arch.registry import Registry
-from asm import assemble_single
+from asm import assemble_single, can_parse_number
 
 class HeaderEmitter:
     """Emit object header fields by walking spec.object_format.header.fields."""
@@ -88,6 +88,7 @@ class MacroAssembler:
         self.sequence_words = {}  # slot → (action, target)
         self.label_addrs    = {}
         self.branch_ph      = []
+        self.uc_branch_ph   = []
 
     def discovery_pass(self, lines):
         for ln, line in enumerate(lines, 1):
@@ -146,15 +147,20 @@ class MacroAssembler:
             # --- sw_branch / sw_complete ---
             m = re.match(r'\.sw_branch\s+(\w+)', text)
             if m:
-                label = m.group(1)
+                branch_target = m.group(1)
                 if self.current_slot == None:
                     sys.exit(f"Error (line {ln}): Slot not set for sw_branch")
 
                 # Close current slot
                 self.slot_state[self.current_slot] = 'used'
                 self.remaining_fill[self.current_slot] = 0
-                self.sequence_words[self.current_slot] = ('BRANCH', label)
-                self.branch_ph.append(self.current_slot)
+                if can_parse_number(branch_target):
+                    # Branch target is absolute address
+                    self.sequence_words[self.current_slot] = ('BRANCH', int(branch_target, 0))
+                else:
+                    # Branch target is label
+                    self.sequence_words[self.current_slot] = ('BRANCH', branch_target)
+                    self.branch_ph.append(self.current_slot)
                 self.current_slot = None
                 continue
 
@@ -198,8 +204,6 @@ class MacroAssembler:
                 continue
 
             # --- normal instruction line ---
-            word = assemble_single(self.spec, text)
-
             if self.current_slot == None:
                 sys.exit(f"Error (line {ln}): no slot selected to place instruction")
             
@@ -223,12 +227,17 @@ class MacroAssembler:
                 self.sequence_words[self.current_slot] = ('CONTINUE', None)
 
             # Place instruction in current block
-            self.packages[self.current_slot].append(word)
             self.instructions[self.current_slot].append(text)
             self.remaining_fill[self.current_slot] -= 1
             self.slot_state[self.current_slot] = 'used'
 
     def fixup_pass(self):
+        # assemble instructions
+        for slot, insn_texts in self.instructions.items():
+            for insn_text in insn_texts:
+                word = assemble_single(self.spec, insn_text, self.label_addrs)
+                self.packages[slot].append(word)
+
         # branch placeholders → real slot indices
         for slot in self.branch_ph:
             action, target = self.sequence_words[slot]
@@ -267,7 +276,11 @@ class MacroAssembler:
                 while len(insn_texts) < self.spec.packages['instructions_per_package']:
                     insn_texts.append("NOP")
                 # debug print
-                out_stream.write(bytes(f"; Slot {slot} @ 0x{self.start_address + slot:x}\n", 'ascii'))
+                labels_str = ""
+                labels = [label for label, addr in self.label_addrs.items() if addr == self.start_address + slot]
+                if len(labels) > 0:
+                    labels_str = " (" + ", ".join(labels) + ")"
+                out_stream.write(bytes(f"; Slot {slot} @ 0x{self.start_address + slot:x}{labels_str}\n", 'ascii'))
                 out_stream.write(bytes("\n".join(insn_texts), 'ascii'))
                 if slot not in self.sequence_words or self.sequence_words[slot][0] == 'CONTINUE':
                     out_stream.write(bytes(f"\n.sw_continue\n\n", 'ascii'))

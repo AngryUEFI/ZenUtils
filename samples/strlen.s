@@ -12,7 +12,7 @@ mov    reg15, rax
 loop:
 mov.b    reg14, ls:[reg15]
 and.Z    reg0, reg14, reg14
-jz.z     0x1fc2                 ; Todo: add support for labels in instructions
+jz.z     end
 add      reg15, reg15, 1
 .sw_branch loop
 

@@ -39,6 +39,8 @@ def get_op_types_from_inst(spec, instr_ops: list) -> list:
             types.append('immediate')
         elif op in spec.segment_to_code:
             types.append('immediate')
+        elif re.match(r'^[A-Za-z_][A-Za-z0-9_]*$', op):
+            types.append('immediate') # mark labels as immediate for now
         else:
             raise ValueError("Unknown type for operand: {}".format(op))
     return types
@@ -94,13 +96,13 @@ def find_instr_spec(spec, assembly: str) -> tuple:
             return (class_name, instr_spec)
     raise ValueError("No inst spec found for instruction: {}".format(assembly))
 
-def insert_operand_values(spec, fields: dict, instr_ops: list, field_names: list, assembly):
+def insert_operand_values(spec, fields: dict, instr_ops: list, field_names: list, assembly: str, label_addrs: dict):
     for op, field_name in zip(instr_ops, field_names):
         # Handle memory operand
         if '[' in op and ']' in op:
             sub_ops = parse_memory_operand(op)
             sub_field_names = parse_memory_operand(field_name)
-            insert_operand_values(spec, fields, sub_ops, sub_field_names, assembly)
+            insert_operand_values(spec, fields, sub_ops, sub_field_names, assembly, label_addrs)
             continue
 
         field = fields[field_name]
@@ -112,12 +114,16 @@ def insert_operand_values(spec, fields: dict, instr_ops: list, field_names: list
             if segment_code == None:
                 segment_code = int(op, 0)
             field['value'] = segment_code
-        elif field['type'] == 'immediate':
+        elif field['type'] == 'immediate' and can_parse_number(op):
             field['value'] = int(op, 0)
+        elif field['type'] == 'immediate' and re.match(r'^[A-Za-z_][A-Za-z0-9_]*$', op):
+            if op not in label_addrs:
+                raise ValueError("Use of undefined label '{}' in '{}'.".format(op, assembly))
+            field['value'] = label_addrs[op]
         else:
-            raise ValueError("Unknown field type {} in {}".format(field['type'], assembly))
+            raise ValueError("Unknown field type '{}' in '{}'.".format(field['type'], assembly))
 
-def assemble_single(spec, assembly: str) -> int:
+def assemble_single(spec, assembly: str, label_addrs: dict = {}) -> int:
     # Get matching instruction spec and default field values
     class_name, instr_spec = find_instr_spec(spec, assembly)
     fields = spec.get_default_fields_for_instruction(instr_spec, class_name)
@@ -125,7 +131,7 @@ def assemble_single(spec, assembly: str) -> int:
     # Insert values for operands
     _, instr_ops = parse_instruction(assembly)
     _, field_names = parse_instruction(instr_spec['template'])
-    insert_operand_values(spec, fields, instr_ops, field_names, assembly)
+    insert_operand_values(spec, fields, instr_ops, field_names, assembly, label_addrs)
 
     # Insert values for flags
     parts = assembly.split(None, 1)[0].split('.', 1)
