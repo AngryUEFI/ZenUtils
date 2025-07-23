@@ -18,6 +18,6 @@ match_registers:
   regs_per_entry: 2
 
 # Override the number of instruction packages
-package:
+packages:
   start_address: 0x1fc0
   count: 64

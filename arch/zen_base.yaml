@@ -16,186 +16,165 @@ size_flags:
   q: 0b111   # quadword (8-byte)
 
 # Common fields of micro instructions
-base_encoding:
-  fields:
-    - name: rt          # 2nd source register operand
-      type: register
-      bits: [21, 25]
-    - name: rs          # 1st source register operand
-      type: register
-      bits: [26, 30]
-    - name: rd          # Destination register operand
-      type: register
-      bits: [31, 35]
-    - name: rmod        # Unknown, must be set for RegOp, LdOp
-      type: flag
-      bits: [36, 36]
-    - name: read_zf     # If set read zero flag
-      type: flag
-      bits: [37, 37]
-    - name: read_cf     # If set read carry flag
-      type: flag
-      bits: [38, 38]
-    - name: write_zf    # If set write zero flag
-      type: flag
-      bits: [39, 39]
-    - name: write_cf    # If set write carry flag
-      type: flag
-      bits: [40, 40]
-    - name: native_flags  # If set use x86_64 cf/zf, if clear use microcode cf/zf
-      type: flag
-      bits: [41, 41]
-    - name: size_flags  # Operation size
-      type: immediate
-      bits: [42, 44]
-    - name: load        # If set performs memory load
-      type: flag
-      bits: [45, 45]
-    - name: store       # If set performs memory store
-      type: flag
-      bits: [46, 46]
-    - name: operation   # Operation ALU (add, shl, and, ...) load, store, cond. microcode branch
-      type: immediate
-      bits: [47, 54]
-    - name: exec_unit   # Execution unit
-      type: immediate
-      bits: [59, 61]
+common_fields:
+  rt:                 # 2nd source register operand
+    type: register
+    bits: [21, 25]
+  rs:                 # 1st source register operand
+    type: register
+    bits: [26, 30]
+  rd:                 # Destination register operand
+    type: register
+    bits: [31, 35]
+  rmod:               # Unknown, must be set for RegOp, LdOp
+    type: flag
+    bits: [36, 36]
+  read_zf:            # If set read zero flag
+    type: flag
+    bits: [37, 37]
+  read_cf:            # If set read carry flag
+    type: flag
+    bits: [38, 38]
+  write_zf:           # If set write zero flag
+    type: flag
+    bits: [39, 39]
+  write_cf:           # If set write carry flag
+    type: flag
+    bits: [40, 40]
+  native_flags:       # If set use x86_64 cf/zf, if clear use microcode cf/zf
+    type: flag
+    bits: [41, 41]
+  size_flags:         # Operation size
+    type: immediate
+    bits: [42, 44]
+  load:               # If set performs memory load
+    type: flag
+    bits: [45, 45]
+  store:              # If set performs memory store
+    type: flag
+    bits: [46, 46]
+  operation:          # Operation ALU (add, shl, and, ...) load, store, cond. microcode branch
+    type: immediate
+    bits: [47, 54]
+  exec_unit:          # Execution unit
+    type: immediate
+    bits: [59, 61]
 
 # Instruction classes
-op_classes:
+instruction_classes:
   # RegOp - ALU operations
   regop:
     fields:
-      - name: imm16       # Immediate
+      imm16:            # Immediate
         type: immediate
         bits: [0, 15]
-      - name: imm_signed  # If set treat imm16 as signed immediate
+      imm_signed:       # If set treat imm16 as signed immediate
         type: flag
         bits: [16, 16]
-      - name: imm_mode    # If set use imm16 as 2nd source operand instead of rt
+      imm_mode:         # If set use imm16 as 2nd source operand instead of rt
         type: flag
         bits: [19, 19]
     defaults:
-      - name: rmod
-        value: 1
-      - name: size_flags
-        value: 7
-      - name: exec_unit
-        value: 7
+      rmod: 1
+      size_flags: 7
+      exec_unit: 7
     condition: operation >= 0x20 && load == 0 && store == 0
   # LdOp - memory load operation
   ldop:
     fields:
-      - name: offset10    # Offset
+      offset10:         # Offset
         type: immediate
         bits: [0, 9]
-      - name: segment     # Memory segment
+      segment:          # Memory segment
         type: immediate
         bits: [10, 13]
-      - name: nop3        # Unknown, one bit must be set for load to work
+      nop3:             # Unknown, one bit must be set for load to work
         type: immediate
         bits: [15, 16]
-      - name: qwsz        # If set left-shift offset by 3 (qword sized elements)
+      qwsz:             # If set left-shift offset by 3 (qword sized elements)
         type: flag
         bits: [19, 19]
     defaults:
-      - name: nop3
-        value: 1
-      - name: rmod
-        value: 1
-      - name: size_flags
-        value: 7
-      - name: load
-        value: 1
-      - name: operation
-        value: 0xde
-      - name: exec_unit
-        value: 5
+      nop3: 1
+      rmod: 1
+      size_flags: 7
+      load: 1
+      operation: 0xde
+      exec_unit: 5
     condition: load == 1 && operation == 0xde && store == 0
   # StOp - memory store operation
   stop:
     fields:
-      - name: offset10    # Offset
+      offset10:         # Offset
         type: immediate
         bits: [0, 9]
-      - name: segment     # Memory segment
+      segment:          # Memory segment
         type: immediate
         bits: [10, 13]
-      - name: nop3        # Unknown, both bits must be set for store to work
+      nop3:             # Unknown, both bits must be set for store to work
         type: immediate
         bits: [15, 16]
-      - name: mode        # Unknown, both bits must be set for store to work
+      mode:             # Unknown, both bits must be set for store to work
         type: immediate
         bits: [15, 16]
-      - name: qwsz        # If set left-shift offset by 3 (qword sized elements)
+      qwsz:             # If set left-shift offset by 3 (qword sized elements)
         type: flag
         bits: [19, 19]
     defaults:
-      - name: nop3
-        value: 3
-      - name: mode
-        value: 3
-      - name: size_flags
-        value: 7
-      - name: store
-        value: 1
-      - name: operation
-        value: 0xa0
-      - name: exec_unit
-        value: 3
+      nop3: 3
+      mode: 3
+      size_flags: 7
+      store: 1
+      operation: 0xa0
+      exec_unit: 3
     condition: store == 1 && operation == 0xa0 && load == 0
   # BrOp - microcode conditional branch
   brop:
     fields:
-      - name: address13   # Absolute microcode ROM/RAM address
+      address13:        # Absolute microcode ROM/RAM address
         type: immediate
         bits: [0, 12]
-      - name: mode3       # Unknown, must be set for branch to work
+      mode3:            # Unknown, must be set for branch to work
         type: flag
         bits: [19, 19]
-      - name: cond        # Lower 4 bit of operation encode branch condition (je, jne, jb, ja, etc.)
+      cond:             # Lower 4 bit of operation encode branch condition (je, jne, jb, ja, etc.)
         type: immediate
         bits: [47, 50]
     defaults:
-      - name: mode3
-        value: 1
-      - name: read_zf
-        value: 1
-      - name: read_cf
-        value: 1
-      - name: size_flags
-        value: 7
-      - name: exec_unit
-        value: 4
+      mode3: 1
+      read_zf: 1
+      read_cf: 1
+      size_flags: 7
+      exec_unit: 4
     condition: operation < 0x10 && load == 0 && store == 0
 
 # Instruction flags
 instruction_flags:
-  - flag: z
+  z:
     field: read_zf
     value: 1
-  - flag: c
+  c:
     field: read_cf
     value: 1
-  - flag: Z
+  Z:
     field: write_zf
     value: 1
-  - flag: C
+  C:
     field: write_cf
     value: 1
-  - flag: n
+  n:
     field: native_flags
     value: 1
-  - flag: b
+  b:
     field: size_flags
     value: 0b000
-  - flag: w
+  w:
     field: size_flags
     value: 0b001
-  - flag: d
+  d:
     field: size_flags
     value: 0b011
-  - flag: q
+  q:
     field: size_flags
     value: 0b111
 
@@ -412,7 +391,7 @@ match_registers:
         type: reserved
 
 # Instruction package (quad) specification
-package:
+packages:
     start_address: 0
     count: 0
     instructions_per_package: 4
