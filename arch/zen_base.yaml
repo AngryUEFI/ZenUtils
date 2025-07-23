@@ -383,23 +383,22 @@ match_registers:
   entry_count: 0
   regs_per_entry: 2
   type: match_t
-  encoding:
-    fields:
-      - name: m1
-        bits: [0, 12]
-        type: immediate
-      - name: u1  # match register 1 enable flag
-        bits: [13, 13]
-        type: flag
-      - name: m2
-        bits: [14, 26]
-        type: immediate
-      - name: u2  # match register 2 enable flag
-        bits: [27, 27]
-        type: flag
-      - name: pad
-        bits: [28, 31]
-        type: reserved
+  fields:
+    m1:
+      bits: [0, 12]
+      type: immediate
+    u1:                 # match register 1 enable flag
+      bits: [13, 13]
+      type: flag
+    m2:
+      bits: [14, 26]
+      type: immediate
+    u2:                 # match register 2 enable flag
+      bits: [27, 27]
+      type: flag
+    pad:
+      bits: [28, 31]
+      type: reserved
 
 # Instruction package (quad) specification
 packages:

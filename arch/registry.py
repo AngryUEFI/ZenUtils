@@ -117,18 +117,36 @@ class ArchSpec:
             fields[field]['value'] = val
         return fields
 
-    # def encode_footer(self, action: str, target: int = 0) -> int:
-    #     seq = self.package.get('sequence_word_encoding', {})
-    #     enc = seq.get(action.lower())
-    #     if enc is None:
-    #         raise KeyError(f"Unknown footer action: {action}")
-    #     if isinstance(enc, int):
-    #         return enc
-    #     prefix = enc.get('prefix', 0)
-    #     lo, hi = enc.get('target_address_bits', [0, 0])
-    #     mask = (1 << (hi - lo + 1)) - 1
-    #     return prefix | ((target & mask) << lo)
+    def encode_sequence_word(self, action: str, target: int = 0) -> int:
+        seq = self.packages.get('sequence_word_encoding', {})
+        enc = seq.get(action.lower())
+        if enc is None:
+            raise KeyError(f"Unknown sequence word action: {action}")
+        if isinstance(enc, int):
+            return enc
+        encoding = enc.get('encoding', 0)
+        lo, hi = enc['target_address_bits']
+        mask = (1 << (hi - lo + 1)) - 1
+        return encoding | ((target & mask) << lo)
+    
+    def encode_match_registers(self, match_regs: dict) -> list:
+        result = []
+        fields = deepcopy(self.match_registers['fields'])
+        for i in range(self.match_registers['entry_count']):
+            fields['m1']['value'] = match_regs.get(i * 2, 0)
+            fields['u1']['value'] = int(fields['m1']['value'] != 0)
+            fields['m2']['value'] = match_regs.get(i * 2 + 1, 0)
+            fields['u2']['value'] = int(fields['m2']['value'] != 0)
 
+            word = 0
+            for field in fields.values():
+                val = field.get('value', 0)
+                lo, hi = field['bits']
+                mask = (1 << (hi - lo + 1)) - 1
+                word |= (val & mask) << lo
+            
+            result.append(word)
+        return result
 
 class Registry:
     """
