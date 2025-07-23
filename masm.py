@@ -40,10 +40,11 @@ class HeaderEmitter:
             elif ftype == 'uint8':
                 out_stream.write(bytes(f".{name} 0x{val:02x}\n", 'ascii'))
             elif ftype in ('bytes', 'bytearray'):
+                val = self.values.get(name, self.defaults.get(name, ""))
                 length = field['length']
-                arr = val if isinstance(val, (bytes, bytearray)) else bytes(val)
+                arr = val if isinstance(val, (bytes, bytearray)) else bytes.fromhex(val)
                 if len(arr) == 0:
-                    arr = [0] * length
+                    arr = bytes([0] * length)
                 if len(arr) != length:
                     raise ValueError(f"Length of bytes field {name} is {len(arr)}, expected {length}.")
                 hex = ' '.join([f"{b:02x}" for b in arr])
@@ -65,10 +66,14 @@ class HeaderEmitter:
             elif ftype == 'uint8':
                 out_stream.write(struct.pack('<B', val))
             elif ftype in ('bytes', 'bytearray'):
+                val = self.values.get(name, self.defaults.get(name, ""))
                 length = field['length']
-                arr = val if isinstance(val, (bytes, bytearray)) else bytes(val)
-                # pad or truncate to exactly `length`
-                out_stream.write(arr.ljust(length, b'\0')[:length])
+                arr = val if isinstance(val, (bytes, bytearray)) else bytes.fromhex(val)
+                if len(arr) == 0:
+                    arr = bytes([0] * length)
+                if len(arr) != length:
+                    raise ValueError(f"Length of bytes field {name} is {len(arr)}, expected {length}.")
+                out_stream.write(arr)
             else:
                 raise NotImplementedError(f"Unsupported header field type: {ftype}")
 
