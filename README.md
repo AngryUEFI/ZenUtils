@@ -107,6 +107,46 @@ $ python disasm.py --arch Zen2 0x382F9C108C080042 -i
 add reg1, reg3, 0x42
 ```
 
+Disassemble a whole binary microcode update file:
+```
+$ python disasm.py --arch Zen2 -u cpu00870F10_strlen_shld.bin
+
+; Header
+.date 0x07112025
+.revision 0x08701040
+.format 0x8004
+...
+
+; Match Register
+.match_reg 0 0x00000420
+.match_reg 1 0x00000000
+.match_reg 2 0x00000000
+...
+
+; Instruction Packages
+; Slot 0 @ 0x1fc0 (0x38501c1782000000 0x387f9c1000000000 0x387f9c1000000000 0x387f9c1000000000 0x00000001)
+mov reg15, rax
+nop
+nop
+nop
+.sw_continue
+
+; Slot 1 @ 0x1fc1 (0x286f20173c009800 0x38581c9039c00000 0x20021c2000081fc2 0x382f9c17bc080001 0x00121fc1)
+mov.b reg14, ls:[reg15]
+and.Z reg0, reg14, reg14
+jz.z 0x1fc2
+add reg15, reg15, 0x1
+.sw_branch 0x1fc1 ; (immediately)
+
+; Slot 2 @ 0x1fc2 (0x38281c19be000000 0x387f9c1000000000 0x387f9c1000000000 0x387f9c1000000000 0x03100082)
+sub rbx, reg15, rax
+nop
+nop
+nop
+.sw_complete ; (immediately)
+...
+```
+
 ## Ack
 - [Zentool](https://github.com/google/security-research/tree/master/pocs/cpus/entrysign/zentool)
 - [AngryUEFI](https://github.com/AngryUEFI/AngryUEFI), [AngryCAT](https://github.com/AngryUEFI/AngryCAT)

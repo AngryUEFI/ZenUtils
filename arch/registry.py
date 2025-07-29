@@ -78,6 +78,9 @@ class ArchSpec:
     def decode_instruction(self, word: int) -> dict:
         fields = self.get_common_field_values(word)
         class_name = self.get_class(fields)
+        if class_name is None:
+            return None
+            
         fields.update(self.get_class_field_values(word, class_name))
         return fields
 
@@ -129,6 +132,24 @@ class ArchSpec:
         mask = (1 << (hi - lo + 1)) - 1
         return encoding | ((target & mask) << lo)
     
+    def decode_sequence_word(self, word: int) -> str:
+        # Todo: improve spec and generalize this function
+        if word & 0x00020000 != 0:
+            lo, hi = self.packages['sequence_word_encoding']['branch']['target_address_bits']
+            mask = (1 << (hi - lo + 1)) - 1
+            val = (word >> lo) & mask
+            imm_str = " ; (immediately)" if word & 0x00100000 else ""
+            return f".sw_branch 0x{val:x}{imm_str}"
+        
+        if word & 1:
+            return ".sw_continue"
+        
+        if word & 2:
+            imm_str = " ; (immediately)" if word & 0x00100000 else ""
+            return f".sw_complete{imm_str}"
+        
+        return f".sw 0x{word:08x}"
+
     def encode_match_registers(self, match_regs: dict) -> list:
         result = []
         fields = deepcopy(self.match_registers['fields'])
@@ -146,6 +167,20 @@ class ArchSpec:
                 word |= (val & mask) << lo
             
             result.append(word)
+        return result
+
+    def decode_match_registers(self, data: bytes) -> list:
+        result = []
+        fields = deepcopy(self.match_registers['fields'])
+        for i in range(len(data) // 4):
+            word = int.from_bytes(data[i*4:i*4+4], 'little')
+
+            for field in fields.values():
+                lo, hi = field['bits']
+                mask = (1 << (hi - lo + 1)) - 1
+                field['value'] = (word >> lo) & mask
+            
+            result.append(deepcopy(fields))
         return result
 
 class Registry:
