@@ -147,6 +147,216 @@ nop
 ...
 ```
 
+lifter miasm ir:
+```
+$ python3 lifter.py
+=== Zen Microcode Lifter v2.0 ===
+Based on full Zen architecture specification
+
+Architecture initialized:
+  Registers: 37 total
+  Segments: 6
+  PC: PC
+
+--- Decoding: add.n reg1, reg3, reg7 ---
+Decoding instruction: add.n reg1, reg3, reg7
+✓ Decoded as: add.n reg1, reg3, reg7
+
+--- Decoding: add reg0, reg0, reg0 ---
+Decoding instruction: add reg0, reg0, reg0
+✓ Decoded as: add reg0, reg0, reg0
+
+--- Decoding: add reg1, reg3, 0x42 ---
+Decoding instruction: add reg1, reg3, 0x42
+✓ Decoded as: add reg1, reg3, 66
+
+--- Decoding: add.n reg1, reg3, 0x42 ---
+Decoding instruction: add.n reg1, reg3, 0x42
+✓ Decoded as: add.n reg1, reg3, 66
+
+--- Decoding: xor.zcZCnd reg1, reg3, 0x42 ---
+Decoding instruction: xor.zcZCnd reg1, reg3, 0x42
+✓ Decoded as: xor.zcZCnd reg1, reg3, 66
+
+--- Decoding: jz.z 0x1fc0 ---
+Decoding instruction: jz.z 0x1fc0
+✓ Decoded as: jz.z 8128
+
+--- Decoding: jge 0x1fe2 ---
+Decoding instruction: jge 0x1fe2
+✓ Decoded as: jge 8162
+
+--- Decoding: mov r13, cpuid:[r12] ---
+Decoding instruction: mov r13, cpuid:[r12]
+✓ Decoded as: mov r13, cpuid:[r12]
+
+--- Decoding: mov msr2:[reg15], reg14 ---
+Decoding instruction: mov msr2:[reg15], reg14
+✓ Decoded as: mov msr2:[reg15], reg14
+
+--- Decoding: mov.b reg14, ls:[reg15 + reg14 + 0x20] ---
+Decoding instruction: mov.b reg14, ls:[reg15 + reg14 + 0x20]
+✓ Decoded as: mov.b reg14, ls:[reg15 + reg14]
+
+--- Decoding: mov reg1, reg7 ---
+Decoding instruction: mov reg1, reg7
+✓ Decoded as: mov reg1, reg7
+
+--- Decoding: mov reg1, 0x4242 ---
+Decoding instruction: mov reg1, 0x4242
+✓ Decoded as: mov reg1, 16962
+
+Successfully decoded 12 instructions
+IRAZen initialized with IRDst: PC
+
+=== Processing regop instruction: add.n at 0x0 ===
+Processing instruction: add.n
+Arithmetic sizes: dst=64, src1=64, src2=64
+Generated 2 expressions
+  0: REG1 = REG3 + REG7
+  1: PC = 0x8
+✓ Created IR block for add.n
+
+=== Processing regop instruction: add at 0x8 ===
+Processing instruction: add
+Arithmetic sizes: dst=64, src1=64, src2=64
+Generated 2 expressions
+  0: REG0 = REG0 + REG0
+  1: PC = 0x10
+✓ Created IR block for add
+
+=== Processing regop instruction: add at 0x10 ===
+Processing instruction: add
+Arithmetic sizes: dst=64, src1=64, src2=64
+Generated 2 expressions
+  0: REG1 = REG3 + 0x42
+  1: PC = 0x18
+✓ Created IR block for add
+
+=== Processing regop instruction: add.n at 0x18 ===
+Processing instruction: add.n
+Arithmetic sizes: dst=64, src1=64, src2=64
+Generated 2 expressions
+  0: REG1 = REG3 + 0x42
+  1: PC = 0x20
+✓ Created IR block for add.n
+
+=== Processing regop instruction: xor.zcZCnd at 0x20 ===
+Processing instruction: xor.zcZCnd
+Logic sizes: dst=32, src1=32, src2=32
+Generated 4 expressions
+  0: REG1 = REG3 ^ 0x42
+  1: NCF = 0x0
+  2: NZF = (REG3 ^ 0x42) == 0x0
+  3: PC = 0x28
+✓ Created IR block for xor.zcZCnd
+
+=== Processing brop instruction: jz.z at 0x28 ===
+Processing instruction: jz.z
+Generated 0 expressions
+✗ No IR expressions generated
+
+=== Processing brop instruction: jge at 0x30 ===
+Processing instruction: jge
+Generated 0 expressions
+✗ No IR expressions generated
+
+=== Processing regop instruction: mov at 0x38 ===
+Processing instruction: mov
+Generated 1 expressions
+  0: PC = 0x40
+✓ Created IR block for mov
+
+=== Processing regop instruction: mov at 0x40 ===
+Processing instruction: mov
+Generated 1 expressions
+  0: PC = 0x48
+✓ Created IR block for mov
+
+=== Processing regop instruction: mov.b at 0x48 ===
+Processing instruction: mov.b
+Generated 1 expressions
+  0: PC = 0x50
+✓ Created IR block for mov.b
+
+=== Processing regop instruction: mov at 0x50 ===
+Processing instruction: mov
+MOV sizes: dst=64, src=64
+Generated 2 expressions
+  0: REG1 = REG7
+  1: PC = 0x58
+✓ Created IR block for mov
+
+=== Processing regop instruction: mov at 0x58 ===
+Processing instruction: mov
+MOV sizes: dst=64, src=64
+Generated 2 expressions
+  0: REG1 = 0x4242
+  1: PC = 0x60
+✓ Created IR block for mov
+
+==================================================
+Generated Zen Microcode IR
+==================================================
+
+Block at loc_key_0:
+  AssignBlock 0:
+    REG1
+    PC
+
+Block at loc_key_8:
+  AssignBlock 0:
+    REG0
+    PC
+
+Block at loc_key_16:
+  AssignBlock 0:
+    REG1
+    PC
+
+Block at loc_key_24:
+  AssignBlock 0:
+    REG1
+    PC
+
+Block at loc_key_32:
+  AssignBlock 0:
+    REG1
+    NCF
+    NZF
+    PC
+
+Block at loc_key_56:
+  AssignBlock 0:
+    PC
+
+Block at loc_key_64:
+  AssignBlock 0:
+    PC
+
+Block at loc_key_72:
+  AssignBlock 0:
+    PC
+
+Block at loc_key_80:
+  AssignBlock 0:
+    REG1
+    PC
+
+Block at loc_key_88:
+  AssignBlock 0:
+    REG1
+    PC
+
+==================================================
+SUMMARY
+==================================================
+✓ Instructions processed: 12
+✓ IR blocks created: 10
+✓ Total IR assignments: 10
+✓ Lifter completed successfully!
+```
+
 ## Ack
 - [Zentool](https://github.com/google/security-research/tree/master/pocs/cpus/entrysign/zentool)
 - [AngryUEFI](https://github.com/AngryUEFI/AngryUEFI), [AngryCAT](https://github.com/AngryUEFI/AngryCAT)
