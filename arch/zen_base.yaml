@@ -80,6 +80,9 @@ instruction_classes:
       imm_signed:       # If set treat imm16 as signed immediate
         type: flag
         bits: [16, 16]
+      imm32_mode:        # If set loads 32bit immediate, combining imm16 fields from last and current instruction
+        type: flag
+        bits: [17, 17]
       imm_mode:         # If set use imm16 as 2nd source operand instead of rt
         type: flag
         bits: [19, 19]
@@ -194,6 +197,14 @@ instructions:
       condition: operation == 0xa0 && imm_mode == 0
     - template: mov rd, imm16
       condition: operation == 0xa0 && imm_mode == 1
+    - template: cmov_cf rd, rs, rt
+      condition: operation == 0x92 && imm_mode == 0
+    - template: cmov_cf rd, rs, imm16
+      condition: operation == 0x92 && imm_mode == 1
+    - template: cmov_zf rd, rs, rt
+      condition: operation == 0x94 && imm_mode == 0
+    - template: cmov_zf rd, rs, imm16
+      condition: operation == 0x94 && imm_mode == 1
     # Arithmetic ops
     - template: add rd, rs, rt
       condition: operation == 0x5f && imm_mode == 0
@@ -207,6 +218,10 @@ instructions:
       condition: operation == 0x50 && imm_mode == 0
     - template: sub rd, rs, imm16
       condition: operation == 0x50 && imm_mode == 1
+    - template: sub2 rd, rs, rt
+      condition: operation >= 0x20 && operation <= 0x2f && imm_mode == 0
+    - template: sub2 rd, rs, imm16
+      condition: operation >= 0x20 && operation <= 0x2f && imm_mode == 1
     - template: sbb rd, rs, rt
       condition: operation == 0x52 && imm_mode == 0
     - template: sbb rd, rs, imm16

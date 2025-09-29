@@ -1,4 +1,4 @@
-# Zen1 ISA version delta: inherits all from base Zen
+# Zen2 ISA version delta: inherits all from base Zen
 inherits: ZenBase
 name: Zen2
 

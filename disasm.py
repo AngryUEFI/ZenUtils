@@ -5,7 +5,7 @@ import re
 import struct
 from arch.registry import Registry
 
-def disassemble_single(spec, word: int) -> str:
+def disassemble_single(spec, word: int, prev_word:int = 0) -> str:
     # Decode fields
     fields = spec.decode_instruction(word)
     if fields is None:
@@ -41,6 +41,11 @@ def disassemble_single(spec, word: int) -> str:
         del flags['q']
     if len(flags):
         assembly = assembly.replace(parts[0], parts[0] + '.' + ''.join(flags.keys()))
+
+    # Print 32-bit immediate mode
+    if 'imm32_mode' in fields and fields['imm32_mode']['value'] == 1:
+        value = ((prev_word & 0xffff) << 16) | fields['imm16']['value']
+        assembly += f", imm32:0x{value:x}"
 
     return assembly
 
