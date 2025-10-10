@@ -240,7 +240,10 @@ class MacroAssembler:
         # assemble instructions
         for slot, insn_texts in self.instructions.items():
             for insn_text in insn_texts:
-                word = assemble_single(self.spec, insn_text, self.label_addrs)
+                if insn_text.startswith(".insn"):
+                    word = int(insn_text.split(None, 1)[1], 0)
+                else:
+                    word = assemble_single(self.spec, insn_text, self.label_addrs)
                 self.packages[slot].append(word)
 
         # branch placeholders → real slot indices
