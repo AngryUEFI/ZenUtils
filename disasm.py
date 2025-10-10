@@ -49,13 +49,29 @@ def disassemble_single(spec, word: int, prev_word:int = 0) -> str:
 
     return assembly
 
-def disassemble_object(spec, data: bytes) -> str:
+def detect_zen_arch(cpuid: int) -> str:
+    part = (cpuid >> 8) & 0xFF
+    if part == 0x80:
+        return "Zen1"
+    elif part == 0x87:
+        return "Zen2"
+    elif part == 0xA2:
+        return "Zen3"
+    elif part == 0xA6:
+        return "Zen4"
+    elif part == 0xB4:
+        return "Zen5"
+    else:
+        raise ValueError(f"Auto detect of architecture failed with cpuid '0x{cpuid:x}'.")
+
+def disassemble_object(reg, spec, data: bytes, auto_detect_arch: bool) -> str:
     result = []
     offset = 0
 
     # Print object header
     result.append("; Header")
     fields = spec.object_format['header']['fields']
+    cpuid = None
     for field in fields:
         name = field['name']
         ftype = field['type']
@@ -63,6 +79,8 @@ def disassemble_object(spec, data: bytes) -> str:
             val, = struct.unpack_from('<I', data, offset)
             result.append(f".{name} 0x{val:08x}")
             offset += 4
+            if name == "cpuid":
+                cpuid = val
         elif ftype == 'uint16':
             val, = struct.unpack_from('<H', data, offset)
             result.append(f".{name} 0x{val:04x}")
@@ -79,6 +97,11 @@ def disassemble_object(spec, data: bytes) -> str:
         else:
             raise ValueError(f"Unsupported header field type: {ftype}")
     
+    # Detect Zen version
+    if auto_detect_arch:
+        zen_version = detect_zen_arch(cpuid)
+        spec = reg.get(zen_version)
+
     # Print match registers
     result.append("\n; Match Register")
     entry_count = spec.match_registers['entry_count']
@@ -126,7 +149,7 @@ def disassemble_object(spec, data: bytes) -> str:
 
 def main():
     parser = argparse.ArgumentParser(description="Zen Microcode Disassembler.")
-    parser.add_argument('--arch', required=True, help="Architecture spec name (e.g., Zen1, Zen2)")
+    parser.add_argument('--arch', help="Architecture spec name (e.g., Zen1, Zen2)")
     parser.add_argument('-i','--inspect', action='store_true', help="Verbose field breakdown")
     parser.add_argument('instr', nargs='?', help="Instruction word in hex (0x...) or binary (0b...)")
     parser.add_argument('-u', '--update_file', help="Microcode update file")
@@ -136,18 +159,25 @@ def main():
         sys.exit(f"Got instr and update_file, only one allowed.")
     if not args.instr and not args.update_file:
         sys.exit(f"One of instr or update_file required.")
+    if args.instr and not args.arch:
+        sys.exit(f"Single instruction mode requires --arch.")
 
     # Load architecture spec
     reg = Registry()
     try:
-        spec = reg.get(args.arch)
+        # In case no arch was provided, just use Zen1 and detect correct arch later
+        auto_detect_arch = args.arch is None
+        if auto_detect_arch:
+            spec = reg.get("Zen1")
+        else:
+            spec = reg.get(args.arch)
     except KeyError:
         sys.exit(f"Error: Unknown architecture '{args.arch}'")
 
     ### Microcode update mode
     if args.update_file:
         data = open(args.update_file, 'rb').read()
-        print(disassemble_object(spec, data))
+        print(disassemble_object(reg, spec, data, auto_detect_arch))
         return
 
     ### Single instruction mode
