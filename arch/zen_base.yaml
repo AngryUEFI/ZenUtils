@@ -86,6 +86,9 @@ instruction_classes:
       imm_mode:         # If set use imm16 as 2nd source operand instead of rt
         type: flag
         bits: [19, 19]
+      cond:             # Lower 4 bit of operation encode condition for some instructions
+        type: immediate
+        bits: [47, 50]
     defaults:
       rmod: 1
       size_flags: 7
@@ -197,14 +200,6 @@ instructions:
       condition: operation == 0xa0 && imm_mode == 0
     - template: mov rd, imm16
       condition: operation == 0xa0 && imm_mode == 1
-    - template: cmov_cf rd, rs, rt
-      condition: operation == 0x92 && imm_mode == 0
-    - template: cmov_cf rd, rs, imm16
-      condition: operation == 0x92 && imm_mode == 1
-    - template: cmov_zf rd, rs, rt
-      condition: operation == 0x94 && imm_mode == 0
-    - template: cmov_zf rd, rs, imm16
-      condition: operation == 0x94 && imm_mode == 1
     # Arithmetic ops
     - template: add rd, rs, rt
       condition: operation == 0x5f && imm_mode == 0
@@ -280,6 +275,63 @@ instructions:
       condition: operation == 0x4e && imm_mode == 0
     - template: sar rd, rs, imm16
       condition: operation == 0x4e && imm_mode == 1
+    # Conditional ops
+    - template: movxy_x rd, rs, rt
+      condition: operation == 0x90 && imm_mode == 0
+    - template: movxy_x rd, rs, imm16
+      condition: operation == 0x90 && imm_mode == 1
+    - template: movxy_y rd, rs, rt
+      condition: operation == 0x91 && imm_mode == 0
+    - template: movxy_y rd, rs, imm16
+      condition: operation == 0x91 && imm_mode == 1
+    - template: movxy_b rd, rs, rt
+      condition: operation == 0x92 && imm_mode == 0
+    - template: movxy_b rd, rs, imm16
+      condition: operation == 0x92 && imm_mode == 1
+    - template: movxy_nb rd, rs, rt
+      condition: operation == 0x93 && imm_mode == 0
+    - template: movxy_nb rd, rs, imm16
+      condition: operation == 0x93 && imm_mode == 1
+    - template: movxy_z rd, rs, rt
+      condition: operation == 0x94 && imm_mode == 0
+    - template: movxy_z rd, rs, imm16
+      condition: operation == 0x94 && imm_mode == 1
+    - template: movxy_nz rd, rs, rt
+      condition: operation == 0x95 && imm_mode == 0
+    - template: movxy_nz rd, rs, imm16
+      condition: operation == 0x95 && imm_mode == 1
+    - template: movxy_be rd, rs, rt
+      condition: operation == 0x96 && imm_mode == 0
+    - template: movxy_be rd, rs, imm16
+      condition: operation == 0x96 && imm_mode == 1
+    - template: movxy_a rd, rs, rt
+      condition: operation == 0x97 && imm_mode == 0
+    - template: movxy_a rd, rs, imm16
+      condition: operation == 0x97 && imm_mode == 1
+    - template: movxy_l rd, rs, rt
+      condition: operation == 0x98 && imm_mode == 0
+    - template: movxy_l rd, rs, imm16
+      condition: operation == 0x98 && imm_mode == 1
+    - template: movxy_ge rd, rs, rt
+      condition: operation == 0x99 && imm_mode == 0
+    - template: movxy_ge rd, rs, imm16
+      condition: operation == 0x99 && imm_mode == 1
+    - template: movxy_le rd, rs, rt
+      condition: operation == 0x9a && imm_mode == 0
+    - template: movxy_le rd, rs, imm16
+      condition: operation == 0x9a && imm_mode == 1
+    - template: movxy_g rd, rs, rt
+      condition: operation == 0x9b && imm_mode == 0
+    - template: movxy_g rd, rs, imm16
+      condition: operation == 0x9b && imm_mode == 1
+    - template: movxy_s rd, rs, rt
+      condition: operation == 0x9c && imm_mode == 0
+    - template: movxy_s rd, rs, imm16
+      condition: operation == 0x9c && imm_mode == 1
+    - template: movxy_ns rd, rs, rt
+      condition: operation == 0x9e && imm_mode == 0
+    - template: movxy_ns rd, rs, imm16
+      condition: operation == 0x9e && imm_mode == 1
   # Memory load
   ldop:
     - template: mov rd, segment:[rs]
