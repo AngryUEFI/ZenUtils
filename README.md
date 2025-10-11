@@ -13,7 +13,7 @@ mov.b reg14, ls:[reg15 + reg14 + 0x20]
 
 ## Samples
 - `samples/ucode` contains microcode patch sources for the macro assembler and disassembler.
-- `samples/mcode` hosts companion x86 code that calls into the patches, useful when testing end-to-end flows.
+- `samples/mcode` hosts companion x86-64 code that calls into the patches, useful when testing end-to-end flows.
 
 ## Tools
 
