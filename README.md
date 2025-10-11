@@ -11,6 +11,10 @@ mov msr2:[reg15], reg14
 mov.b reg14, ls:[reg15 + reg14 + 0x20]
 ```
 
+## Samples
+- `samples/ucode` contains microcode patch sources for the macro assembler and disassembler.
+- `samples/mcode` hosts companion x86 code that calls into the patches, useful when testing end-to-end flows.
+
 ## Tools
 
 ### Assembler
@@ -62,10 +66,10 @@ The macro assembler converts microcode assembly files to microcode updates binar
 > Note
 > The microcode updates must be signed (f.i., with Zentool) before they are accepted by Zen CPUs.
 
-For examples see the `samples` folder. Usage:
+For microcode examples see `samples/ucode`. Usage:
 
 ```
-$ python masm.py samples/strlen.s -o cpu00870F10_strlen_shld.bin
+$ python masm.py samples/ucode/strlen.s -o cpu00870F10_strlen_shld.bin
 
 ; Packages used: 3 of 64
 
