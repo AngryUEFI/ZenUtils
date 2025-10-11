@@ -90,7 +90,7 @@ class MacroAssembler:
         self.current_slot   = None
         self.packages       = {i: [] for i in range(self.N)}  # list of instr words
         self.instructions   = {i: [] for i in range(self.N)}  # list of instr texts
-        self.sequence_words = {}  # slot → (action, target)
+        self.sequence_words = {}  # slot → (action, args...)
         self.label_addrs    = {}
         self.branch_ph      = []
         self.uc_branch_ph   = []
@@ -149,7 +149,7 @@ class MacroAssembler:
                 self.sequence_words[self.current_slot] = ('CONTINUE', None)
                 continue
 
-            # --- sw_branch / sw_complete ---
+            # --- sw_branch ---
             m = re.match(r'\.sw_branch\s+(\w+)', text)
             if m:
                 branch_target = m.group(1)
@@ -169,6 +169,7 @@ class MacroAssembler:
                 self.current_slot = None
                 continue
 
+            # --- sw_complete ---
             if text.startswith('.sw_complete'):
                 if self.current_slot == None:
                     sys.exit(f"Error (line {ln}): Slot not set for sw_complete")
@@ -177,6 +178,30 @@ class MacroAssembler:
                 self.slot_state[self.current_slot] = 'used'
                 self.remaining_fill[self.current_slot] = 0
                 self.sequence_words[self.current_slot] = ('COMPLETE', None)
+                self.current_slot = None
+                continue
+
+            # --- sw_custom ---
+            m = re.match(r'\.sw_custom\s+(?P<value>\w+)(?:\s+(?P<label>\w+))?', text)
+            if m:
+                custom_sw = int(m.group("value"), 0)
+                sw_target = m.group("label")
+                if self.current_slot == None:
+                    sys.exit(f"Error (line {ln}): Slot not set for sw_custom")
+
+                # Close current slot
+                self.slot_state[self.current_slot] = 'used'
+                self.remaining_fill[self.current_slot] = 0
+                if sw_target is not None:
+                    if can_parse_number(sw_target):
+                        # SW target is absolute address
+                        self.sequence_words[self.current_slot] = ('CUSTOM', (custom_sw & 0xffffe000) | int(sw_target, 0))
+                    else:
+                        # Branch target is label
+                        self.sequence_words[self.current_slot] = ('CUSTOM', sw_target, custom_sw)
+                        self.branch_ph.append(self.current_slot)
+                else:
+                    self.sequence_words[self.current_slot] = ('CUSTOM', custom_sw)
                 self.current_slot = None
                 continue
 
@@ -248,12 +273,15 @@ class MacroAssembler:
 
         # branch placeholders → real slot indices
         for slot in self.branch_ph:
-            action, target = self.sequence_words[slot]
-            if action != 'BRANCH':
-                continue
-            if target not in self.label_addrs:
-                sys.exit(f"Error: undefined label {target}")
-            self.sequence_words[slot] = ('BRANCH', self.label_addrs[target])
+            action, target, custom_sw_val = (*self.sequence_words[slot], None)[:3]
+            if action == 'BRANCH':
+                if target not in self.label_addrs:
+                    sys.exit(f"Error: undefined label {target}")
+                self.sequence_words[slot] = ('BRANCH', self.label_addrs[target])
+            if action == 'CUSTOM':
+                if target not in self.label_addrs:
+                    sys.exit(f"Error: undefined label {target}")
+                self.sequence_words[slot] = ('CUSTOM', (custom_sw_val & 0xffffe000) | self.label_addrs[target])
         # ensure no blocked slots remain
         for idx in self.match_regs:
             s = idx*2
@@ -296,6 +324,8 @@ class MacroAssembler:
                     out_stream.write(bytes(f"\n.sw_branch 0x{self.sequence_words[slot][1]:x}\n\n", 'ascii'))
                 elif self.sequence_words[slot][0] == 'COMPLETE':
                     out_stream.write(bytes(f"\n.sw_complete\n\n", 'ascii'))
+                elif self.sequence_words[slot][0] == 'CUSTOM':
+                    out_stream.write(bytes(f"\n.sw_custom 0x{self.sequence_words[slot][1]:x}\n\n", 'ascii'))
                 else:
                     raise NotImplementedError(f"Unknown sw: {self.sequence_words[slot]}")
 
@@ -310,7 +340,10 @@ class MacroAssembler:
                                                 byteorder=self.spec.endianness))
                 # sequence word
                 action, tgt = self.sequence_words.get(slot, ('CONTINUE', None))
-                ft   = self.spec.encode_sequence_word(action, tgt or 0)
+                if action == "CUSTOM":
+                    ft = tgt
+                else:
+                    ft = self.spec.encode_sequence_word(action, tgt or 0)
                 out_stream.write(ft.to_bytes(self.spec.packages['sequence_word_size']//8,
                                             byteorder=self.spec.endianness))
 
