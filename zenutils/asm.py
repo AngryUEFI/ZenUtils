@@ -2,7 +2,11 @@
 import sys
 import argparse
 import re
-from arch.registry import Registry
+# Support both standard imports (when package is installed) and relative imports (when running as script)
+try:
+    from .arch.registry import Registry
+except ImportError:
+    from arch.registry import Registry
 
 # Parse instruction or template into mnemonic and operands
 # Preserves memory operands as one operand (e.g., `msr2:[reg15 + 8]`)

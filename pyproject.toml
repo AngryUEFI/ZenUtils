@@ -1,0 +1,35 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "zenutils"
+version = "0.1.0"
+description = "Collection of tools to create, dump and manipulate Zen microcode updates"
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "pyyaml>=6.0",
+    "pytest>=7.0",
+]
+authors = [
+    {name = "ZenUtils Contributors"},
+]
+
+[project.scripts]
+zenasm = "zenutils.asm:main"
+zendisasm = "zenutils.disasm:main"
+zenmasm = "zenutils.masm:main"
+
+[project.urls]
+Homepage = "https://github.com/AngryUEFI/ZenUtils"
+Repository = "https://github.com/AngryUEFI/ZenUtils"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["zenutils"]

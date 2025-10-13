@@ -1,5 +1,10 @@
 import pytest
-from arch.eval import ConditionEvaluator
+
+# Support both standard imports (when package is installed) and relative imports (when running outside uv environment)
+try:
+    from zenutils.arch.eval import ConditionEvaluator
+except ImportError:
+    from arch.eval import ConditionEvaluator
 
 def test_eval():
     fields = {'foo': {'value': 1}, 'bar': {'value': 2000}}

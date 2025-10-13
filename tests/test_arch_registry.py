@@ -1,5 +1,10 @@
 import pytest
-from arch.registry import Registry, ArchSpec
+
+# Support both standard imports (when package is installed) and relative imports (when running outside uv environment)
+try:
+    from zenutils.arch.registry import Registry, ArchSpec
+except ImportError:
+    from arch.registry import Registry, ArchSpec
 
 
 def test_registry_loads_all_arch_specs():

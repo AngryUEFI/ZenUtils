@@ -3,7 +3,11 @@ import sys
 import argparse
 import re
 import struct
-from arch.registry import Registry
+# Support both standard imports (when package is installed) and relative imports (when running as script)
+try:
+    from .arch.registry import Registry
+except ImportError:
+    from arch.registry import Registry
 
 def disassemble_single(spec, word: int, prev_word:int = 0) -> str:
     # Decode fields

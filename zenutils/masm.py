@@ -7,8 +7,13 @@ import sys
 import argparse
 import re
 import struct
-from arch.registry import Registry
-from asm import assemble_single, can_parse_number
+# Support both standard imports (when package is installed) and relative imports (when running as script)
+try:
+    from .arch.registry import Registry
+    from .asm import assemble_single, can_parse_number
+except ImportError:
+    from arch.registry import Registry
+    from asm import assemble_single, can_parse_number
 
 class HeaderEmitter:
     """Emit object header fields by walking spec.object_format.header.fields."""

@@ -1,7 +1,14 @@
 import pytest
-from arch.registry import Registry, ArchSpec
-from asm import assemble_single
-from disasm import disassemble_single
+
+# Support both standard imports (when package is installed) and relative imports (when running outside uv environment)
+try:
+    from zenutils.arch.registry import Registry, ArchSpec
+    from zenutils.asm import assemble_single
+    from zenutils.disasm import disassemble_single
+except ImportError:
+    from arch.registry import Registry, ArchSpec
+    from asm import assemble_single
+    from disasm import disassemble_single
 
 data = [
     (0x382F9E108CE00000, "add.n reg1, reg3, reg7"),
