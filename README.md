@@ -15,19 +15,37 @@ mov.b reg14, ls:[reg15 + reg14 + 0x20]
 - `samples/ucode` contains microcode patch sources for the macro assembler and disassembler.
 - `samples/mcode` hosts companion x86-64 code that calls into the patches, useful when testing end-to-end flows.
 
+## Install
+To install ZenUtils, use uv:
+
+```sh
+uv pip install git+https://github.com/AngryUEFI/ZenUtils
+```
+
+This will install the command line tools and Python package.
+To add ZenUtils as a dependency to your own project using uv, run:
+
+```sh
+uv pip add git+https://github.com/AngryUEFI/ZenUtils
+```
+
+This will add ZenUtils to your `pyproject.toml` for use as a library in your project.
+
+
+
 ## Tools
 
 ### Assembler
 Usage:
 ```
-$ python asm.py --arch Zen2 "add reg1, reg3, 0x42"
+$ python zenutils/asm.py --arch Zen2 "add reg1, reg3, 0x42"
 
 ; 0x382F9C108C080042 0011100000101111100111000001000010001100000010000000000001000010
 ```
 
 Inspect fields:
 ```
-$ python asm.py --arch Zen2 "add reg1, reg3, 0x42" -i
+$ python zenutils/asm.py --arch Zen2 "add reg1, reg3, 0x42" -i
 
 ; 0x382F9C108C080042 0011100000101111100111000001000010001100000010000000000001000010
 ; imm16       :   66                                                 0000000001000010
@@ -51,8 +69,8 @@ $ python asm.py --arch Zen2 "add reg1, reg3, 0x42" -i
 
 Python usage:
 ```python
-from arch.registry import Registry
-from asm import assemble_single
+from zenutils.arch.registry import Registry
+from zenutils.asm import assemble_single
 
 zen2_spec = Registry().get('Zen2')
 word = assemble_single(zen2_spec, "add reg1, reg3, 0x42", label_addrs = {})
@@ -69,7 +87,7 @@ The macro assembler converts microcode assembly files to microcode updates binar
 For microcode examples see `samples/ucode`. Usage:
 
 ```
-$ python masm.py samples/ucode/strlen.s -o cpu00870F10_strlen_shld.bin
+$ python zenutils/masm.py samples/ucode/strlen.s -o cpu00870F10_strlen_shld.bin
 
 ; Packages used: 3 of 64
 
@@ -80,7 +98,7 @@ $ zentool resign cpu00870F10_strlen_shld.bin
 Usage:
 
 ```
-$ python disasm.py --arch Zen2 0x382F9C108C080042
+$ python zenutils/disasm.py --arch Zen2 0x382F9C108C080042
 
 add reg1, reg3, 0x42
 ```
@@ -88,7 +106,7 @@ add reg1, reg3, 0x42
 Inspect fields:
 
 ```
-$ python disasm.py --arch Zen2 0x382F9C108C080042 -i
+$ python zenutils/disasm.py --arch Zen2 0x382F9C108C080042 -i
 
 ; 0x382F9C108C080042 0011100000101111100111000001000010001100000010000000000001000010
 ; imm16       :   66                                                 0000000001000010
@@ -113,7 +131,7 @@ add reg1, reg3, 0x42
 
 Disassemble a whole binary microcode update file:
 ```
-$ python disasm.py --arch Zen2 -u cpu00870F10_strlen_shld.bin
+$ python zenutils/disasm.py --arch Zen2 -u cpu00870F10_strlen_shld.bin
 
 ; Header
 .date 0x07112025
