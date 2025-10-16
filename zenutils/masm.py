@@ -107,10 +107,10 @@ class MacroAssembler:
             if m:
                 idx = int(m.group(1)); val = int(m.group(2), 0)
                 if idx in self.match_regs or val in self.match_regs.values():
-                    sys.exit(f"Error (line {ln}): duplicate .match_reg")
+                    raise ValueError(f"Error (line {ln}): duplicate .match_reg")
                 slot = idx * 2
                 if not (0 <= slot < self.N):
-                    sys.exit(f"Error (line {ln}): slot {slot} out of range")
+                    raise ValueError(f"Error (line {ln}): slot {slot} out of range")
                 self.match_regs[idx]    = val
                 self.slot_state[slot]   = 'blocked'
 
@@ -159,7 +159,7 @@ class MacroAssembler:
             if m:
                 branch_target = m.group(1)
                 if self.current_slot == None:
-                    sys.exit(f"Error (line {ln}): Slot not set for sw_branch")
+                    raise ValueError(f"Error (line {ln}): Slot not set for sw_branch")
 
                 # Close current slot
                 self.slot_state[self.current_slot] = 'used'
@@ -177,7 +177,7 @@ class MacroAssembler:
             # --- sw_complete ---
             if text.startswith('.sw_complete'):
                 if self.current_slot == None:
-                    sys.exit(f"Error (line {ln}): Slot not set for sw_complete")
+                    raise ValueError(f"Error (line {ln}): Slot not set for sw_complete")
 
                 # Close current slot
                 self.slot_state[self.current_slot] = 'used'
@@ -192,7 +192,7 @@ class MacroAssembler:
                 custom_sw = int(m.group("value"), 0)
                 sw_target = m.group("label")
                 if self.current_slot == None:
-                    sys.exit(f"Error (line {ln}): Slot not set for sw_custom")
+                    raise ValueError(f"Error (line {ln}): Slot not set for sw_custom")
 
                 # Close current slot
                 self.slot_state[self.current_slot] = 'used'
@@ -220,7 +220,7 @@ class MacroAssembler:
                     preferred_slot = self.current_slot + 1
                 new_slot = self._next_slot(prefer=preferred_slot)
                 if new_slot is None:
-                    sys.exit(f"Error (line {ln}): out of slots for label")
+                    raise ValueError(f"Error (line {ln}): out of slots for label")
 
                 # Close current slot
                 if self.current_slot != None:
@@ -240,14 +240,14 @@ class MacroAssembler:
 
             # --- normal instruction line ---
             if self.current_slot == None:
-                sys.exit(f"Error (line {ln}): no slot selected to place instruction")
+                raise ValueError(f"Error (line {ln}): no slot selected to place instruction")
             
             # Allocate new slot if current slot full
             if self.remaining_fill[self.current_slot] == 0:
                 # Get new slot
                 new_slot = self._next_slot(prefer=self.current_slot + 1)
                 if new_slot is None:
-                    sys.exit(f"Error (line {ln}): out of slots for label")
+                    raise ValueError(f"Error (line {ln}): out of slots for label")
                 
                 # Close current slot
                 self.slot_state[self.current_slot] = 'used'
@@ -281,17 +281,17 @@ class MacroAssembler:
             action, target, custom_sw_val = (*self.sequence_words[slot], None)[:3]
             if action == 'BRANCH':
                 if target not in self.label_addrs:
-                    sys.exit(f"Error: undefined label {target}")
+                    raise ValueError(f"Error: undefined label {target}")
                 self.sequence_words[slot] = ('BRANCH', self.label_addrs[target])
             if action == 'CUSTOM':
                 if target not in self.label_addrs:
-                    sys.exit(f"Error: undefined label {target}")
+                    raise ValueError(f"Error: undefined label {target}")
                 self.sequence_words[slot] = ('CUSTOM', (custom_sw_val & 0xffffe000) | self.label_addrs[target])
         # ensure no blocked slots remain
         for idx in self.match_regs:
             s = idx*2
             if self.slot_state[s] != 'used':
-                sys.exit(f"Error: blocked slot {s} unfilled")
+                raise ValueError(f"Error: blocked slot {s} unfilled")
 
     def emit(self, out_stream, err_stream=sys.stderr, debug=False):
         # 1) header
@@ -392,26 +392,26 @@ def main():
             if len(parts) >= 2:
                 name = parts[1]
                 if arch_directive and name != arch_directive:
-                    sys.exit(f"Error (line {ln}): conflicting .arch directives: "
+                    raise ValueError(f"Error (line {ln}): conflicting .arch directives: "
                              f"{arch_directive} vs {name}")
                 arch_directive = name
 
     # At least one of --arch or .arch must be provided; if both, they must match
     if args.arch and arch_directive:
         if args.arch != arch_directive:
-            sys.exit(f"Error: --arch '{args.arch}' disagrees with .arch '{arch_directive}'")
+            raise ValueError(f"Error: --arch '{args.arch}' disagrees with .arch '{arch_directive}'")
         arch_name = args.arch
     elif args.arch:
         arch_name = args.arch
     elif arch_directive:
         arch_name = arch_directive
     else:
-        sys.exit("Error: Architecture must be specified via --arch or .arch directive")
+        raise ValueError("Error: Architecture must be specified via --arch or .arch directive")
 
     try:
         spec = Registry().get(arch_name)
     except KeyError:
-        sys.exit(f"Error: unknown arch {arch_name}")
+        raise ValueError(f"Error: unknown arch {arch_name}")
 
     masm = MacroAssembler(spec)
     masm.discovery_pass(lines)
@@ -423,7 +423,7 @@ def main():
         try:
             out_fd = open(args.output, 'wb')
         except OSError as e:
-            sys.exit(f"Error: cannot open output file '{args.output}': {e}")
+            raise ValueError(f"Error: cannot open output file '{args.output}': {e}")
     else:
         out_fd = sys.stdout.buffer
 
