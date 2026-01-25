@@ -1,6 +1,6 @@
 # ZenUtils
 
-Collection of tools to create, dump and manipulate Zen microcode updates. Currently supported are Zen1 and Zen2 microcode variants, and basic instructions: arithmetic, logic, shift, load, store, conditional microcode branch. See [zen_base.yaml](arch/zen_base.yaml) for field descriptions, operations and flags.
+Collection of tools to create, dump and manipulate Zen microcode updates. Currently supported are Zen1 and Zen2 microcode variants, and basic instructions: arithmetic, logic, shift, load, store, conditional microcode branch. See [zen_base.yaml](zenutils/arch/zen_base.yaml) for field descriptions, operations and flags.
 
 ```nasm
 mov reg1, 0x4242
